@@ -1,0 +1,31 @@
+<script>
+(function(){
+// パラメーター取得
+function getParameters()
+{
+	var ret = null;
+
+	var url = window.location.href;
+	if (url.indexOf("?") > 0) {
+		var map = {};
+		var params = url.split("?");
+		params = params[1];
+		params = params.split("&");
+		for (var i=0; i<params.length; i++) {
+			var param = params[i].split("=");
+			map[param[0]] = param[1];
+		}
+		ret = map;
+	}
+
+	return ret;
+}
+// 画面遷移
+var params = getParameters();
+var url = "/error.html";
+if (params && ("orderId" in params)) {
+	url = `/smaphregi/secure?orderId=${params['orderId']}`;
+}
+window.location = url;
+})();
+</script>

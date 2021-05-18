@@ -1,0 +1,243 @@
+$scandit-blue: #7ed9e2;
+$radial-circle-size: 180px;
+
+.scandit {
+  &.scandit-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  &.scandit-barcode-picker {
+    position: relative;
+    min-width: 1px;
+    min-height: 1px;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+  }
+
+  .scandit-video {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: block;
+
+    &.mirrored {
+      transform: scale(-1, 1);
+    }
+  }
+
+  .scandit-logo {
+    position: absolute;
+    bottom: 5%;
+    right: 5%;
+    max-width: 35%;
+    max-height: 12.5%;
+    pointer-events: none;
+    transform: translateZ(0);
+  }
+
+  .scandit-laser {
+    z-index: 10;
+    position: absolute;
+    box-sizing: border-box;
+    top: -9999px;
+    pointer-events: none;
+    transform: translateZ(0);
+    display: flex;
+    align-items: center;
+
+    img {
+      position: absolute;
+      width: 100%;
+      max-height: 47px;
+      transition: opacity 0.25s ease;
+      animation-duration: 0.25s;
+    }
+  }
+
+  .scandit-viewfinder {
+    z-index: 10;
+    position: absolute;
+    box-sizing: border-box;
+    border: 2px #fff solid;
+    border-radius: 10px;
+    top: -9999px;
+    animation-duration: 0.25s;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+    transform: translateZ(0);
+
+    &.paused {
+      opacity: 0.4;
+    }
+  }
+
+  .scandit-camera-switcher,
+  .scandit-torch-toggle {
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
+    position: absolute;
+    top: 5%;
+    max-width: 15%;
+    max-height: 15%;
+    z-index: 10;
+    cursor: pointer;
+    filter: drop-shadow(0 2px 0 #808080);
+    transform: translateZ(0);
+  }
+
+  .scandit-camera-switcher {
+    left: 5%;
+  }
+
+  .scandit-torch-toggle {
+    right: 5%;
+  }
+
+  .scandit-camera-upload {
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+
+    label {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      width: $radial-circle-size;
+      height: $radial-circle-size;
+      margin-top: $radial-circle-size / 10;
+      border-radius: 50%;
+
+      input[type="file"] {
+        position: absolute;
+        top: -9999px;
+      }
+    }
+  }
+
+  .radial-progress {
+    width: $radial-circle-size;
+    height: $radial-circle-size;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 3px;
+    border-style: solid;
+    border-radius: 50%;
+    position: absolute;
+    transition: opacity 1s ease, border-color 0.5s;
+    animation-duration: 0.25s;
+    box-sizing: border-box;
+
+    $increment: 0.8 / 20;
+
+    @for $i from 0 through 20 {
+      &[data-progress="#{$i * 5}"] {
+        opacity: 0.2 + $increment * $i;
+      }
+    }
+  }
+
+  .scandit-flash-color {
+    animation-name: scandit-flash-color;
+  }
+
+  .scandit-flash-white {
+    animation-name: scandit-flash-white;
+  }
+
+  .scandit-flash-inset {
+    animation-name: scandit-flash-inset;
+  }
+
+  .scandit-opacity-pulse {
+    animation-duration: 0.333s, 1s;
+    animation-iteration-count: 1, infinite;
+    animation-delay: 0s, 0.333s;
+    animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1), cubic-bezier(0.645, 0.045, 0.355, 1);
+    animation-name: scandit-opacity-pulse-before, scandit-opacity-pulse;
+  }
+
+  .scandit-hidden-opacity {
+    opacity: 0;
+  }
+}
+
+.scandit-hidden {
+  display: none !important; /* stylelint-disable-line declaration-no-important */
+}
+
+@keyframes scandit-flash-color {
+  0% {
+    filter: none;
+  }
+
+  50% {
+    filter: drop-shadow(0 0 0.75rem #fff) drop-shadow(0 0 2.5rem $scandit-blue);
+  }
+
+  100% {
+    filter: none;
+  }
+}
+
+@keyframes scandit-flash-white {
+  0% {
+    filter: none;
+  }
+
+  50% {
+    filter: drop-shadow(0 0 0.5rem #fff) drop-shadow(0 0 1rem #fff) drop-shadow(0 0 2.5rem #fff);
+  }
+
+  100% {
+    filter: none;
+  }
+}
+
+@keyframes scandit-flash-inset {
+  0% {
+    box-shadow: none;
+  }
+
+  50% {
+    box-shadow: 0 0 0.5rem inset, 0 0 1rem inset, 0 0 2.5rem inset;
+  }
+
+  100% {
+    box-shadow: none;
+  }
+}
+
+@keyframes scandit-opacity-pulse-before {
+  0% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes scandit-opacity-pulse {
+  0% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+
+  100% {
+    opacity: 0.4;
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "barcode": "4956022006116",
+  "couponDiscription": "【感謝価格】すいか20%割引",
+  "couponId": "watermelon_coupon",
+  "deleted": "",
+  "discountEndDatetime": "2022-12-31 23:59:000",
+  "discountRate": 20,
+  "discountStartDatetime": "2021-04-01 00:00:000",
+  "discountWay": 2,
+  "imageUrl": "https://media.istockphoto.com/vectors/watermelon-icon-in-trendy-flat-style-isolated-on-white-background-vector-id877064160?s=612x612",
+  "itemName": "すいか",
+  "remarks": "すいか１点につき、20円引きとなります。"
+}

@@ -1,0 +1,588 @@
+# Stack:UseCase-SmartRegister-Backend
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  UseCase-Register-OSS
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 128
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - prod
+    Default: dev
+Mappings:
+  EnvironmentMap:
+    dev:
+      LineOAChannelId: LineOAChannelId
+      LIFFChannelId: LIFFChannelId
+      LIFFUrl: LIFFUrl
+      LinePayChannelId: LinePayChannelId
+      LinePayChannelSecret: LinePayChannelSecret
+      LinePayIsSandbox: True or False
+      RegisterOrderInfoDBName: RegisterOrderInfoDBName
+      RegisterItemInfoDBName: RegisterItemInfoDBName
+      RegisterCouponInfoDBName: RegisterCouponInfoDBName
+      LINEChannelAccessTokenDBName: LINEChannelAccessTokenName
+      ConfirmUrlPass: /completed.html
+      DetailsPass: /history.html
+      PaymentImageUrl: "https://media.istockphoto.com/vectors/cash-register-with-a-paper-check-flat-isolated-vector-id1018485968"
+      FrontS3BucketName: FrontS3BucketName
+      LayerVersion: LayerVersion
+      LoggerLevel: INFO or DEBUG
+      LambdaMemorySize: 128 to 10,240
+      # TTL is True:Reservation Data will be deleted at the specified date, False:Data will not be deleted
+      TTL: False 
+      TTLDay: 1
+      # ### ACCESS LOG SETTING ###
+      # LogS3Bucket: S3BucketName for AccessLog
+      # LogFilePrefix: smart-retail-dev/
+      # ### ACCESS LOG SETTING ###
+    prod:
+      LineOAChannelId: LineOAChannelId
+      LIFFChannelId: LIFFChannelId
+      LIFFUrl: LIFFUrl
+      LinePayChannelId: LinePayChannelId
+      LinePayChannelSecret: LinePayChannelSecret
+      LinePayIsSandbox: True or False
+      RegisterOrderInfoDBName: RegisterOrderInfoDBName
+      RegisterItemInfoDBName: RegisterItemInfoDBName
+      RegisterCouponInfoDBName: RegisterCouponInfoDBName
+      LINEChannelAccessTokenDBName: LINEChannelAccessTokenName
+      ConfirmUrlPass: /completed.html
+      DetailsPass: /history.html
+      PaymentImageUrl: "https://media.istockphoto.com/vectors/cash-register-with-a-paper-check-flat-isolated-vector-id1018485968"
+      FrontS3BucketName: FrontS3BucketName
+      LayerVersion: LayerVersion
+      LoggerLevel: INFO or DEBUG
+      LambdaMemorySize: 128 to 10,240
+      TTL: False 
+      TTLDay: 1
+      # ### ACCESS LOG SETTING ###
+      # LogS3Bucket: S3BucketName for AccessLog
+      # LogFilePrefix: smart-retail/
+      # ### ACCESS LOG SETTING ###
+
+Resources:
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/SmartRegister-*:*:*"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/SmartRegister-*:*"
+                  - !GetAtt RegisterItemInfoDB.Arn
+                  - !GetAtt RegisterOrderInfoDB.Arn
+                  - !GetAtt RegisterCouponInfoDB.Arn
+                  - !Sub ${RegisterOrderInfoDB.Arn}/index/*
+                  - !Join
+                    - ""
+                    - - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/
+                      - !FindInMap [
+                          EnvironmentMap,
+                          !Ref Environment,
+                          LINEChannelAccessTokenDBName,
+                        ]
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                Resource: "*"
+      RoleName: !Sub "${AWS::StackName}-LambdaRole"
+
+  GetItemInfo:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      CodeUri: get_item_info/
+      FunctionName: !Sub SmartRegister-GetItemInfo-${Environment}
+      Description: ""
+      Layers:
+        - !Join
+          - ":"
+          - - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer"
+            - !ImportValue SmartRegisterLayer
+            - !FindInMap [EnvironmentMap, !Ref Environment, LayerVersion]
+      Role: !GetAtt LambdaRole.Arn
+      Environment:
+        Variables:
+          LINE_PAY_ITEM_INFO_DB: !Ref RegisterItemInfoDB
+          LINE_PAY_COUPON_INFO_DB: !Ref RegisterCouponInfoDB
+          LOGGER_LEVEL:
+            !FindInMap [EnvironmentMap, !Ref Environment, LoggerLevel]
+      Events:
+        GetItemInfo:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /get_item_info
+            Method: get
+            RestApiId:
+              Ref: SmaRegisterApiGateway
+
+  GetOrderInfo:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      CodeUri: get_order_info/
+      FunctionName: !Sub SmartRegister-GetOrderInfo-${Environment}
+      Description: ""
+      Layers:
+        - !Join
+          - ":"
+          - - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer"
+            - !ImportValue SmartRegisterLayer
+            - !FindInMap [EnvironmentMap, !Ref Environment, LayerVersion]
+      Role: !GetAtt LambdaRole.Arn
+      Environment:
+        Variables:
+          LIFF_CHANNEL_ID:
+            !FindInMap [EnvironmentMap, !Ref Environment, LIFFChannelId]
+          LINE_PAY_ORDER_INFO_DB: !Ref RegisterOrderInfoDB
+          LOGGER_LEVEL:
+            !FindInMap [EnvironmentMap, !Ref Environment, LoggerLevel]
+      Events:
+        GetOrderInfo:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /get_order_info
+            Method: get
+            RestApiId:
+              Ref: SmaRegisterApiGateway
+
+  PutCartData:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      CodeUri: put_cart_data/
+      FunctionName: !Sub SmartRegister-PutCartData-${Environment}
+      Description: ""
+      Layers:
+        - !Join
+          - ":"
+          - - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer"
+            - !ImportValue SmartRegisterLayer
+            - !FindInMap [EnvironmentMap, !Ref Environment, LayerVersion]
+      Role: !GetAtt LambdaRole.Arn
+      Environment:
+        Variables:
+          LIFF_CHANNEL_ID:
+            !FindInMap [EnvironmentMap, !Ref Environment, LIFFChannelId]
+          OA_CHANNEL_ID:
+            !FindInMap [EnvironmentMap, !Ref Environment, LineOAChannelId]
+          LIFF_URL: !FindInMap [EnvironmentMap, !Ref Environment, LIFFUrl]
+          DETAILS_PASS:
+            !FindInMap [EnvironmentMap, !Ref Environment, DetailsPass]
+          LINE_PAY_ITEM_INFO_DB: !Ref RegisterItemInfoDB
+          LINE_PAY_ORDER_INFO_DB: !Ref RegisterOrderInfoDB
+          LINE_PAY_COUPON_INFO_DB: !Ref RegisterCouponInfoDB
+          CHANNEL_ACCESS_TOKEN_DB:
+            !FindInMap [
+              EnvironmentMap,
+              !Ref Environment,
+              LINEChannelAccessTokenDBName,
+            ]
+          LOGGER_LEVEL:
+            !FindInMap [EnvironmentMap, !Ref Environment, LoggerLevel]
+      Events:
+        PutCartData:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /put_cart_data
+            Method: post
+            RestApiId:
+              Ref: SmaRegisterApiGateway
+
+  LinepayReserve:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      CodeUri: put_linepay_request/
+      FunctionName: !Sub SmartRegister-LinepayReserve-${Environment}
+      Description: ""
+      Layers:
+        - !Join
+          - ":"
+          - - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer"
+            - !ImportValue SmartRegisterLayer
+            - !FindInMap [EnvironmentMap, !Ref Environment, LayerVersion]
+      Role: !GetAtt LambdaRole.Arn
+      Environment:
+        Variables:
+          LIFF_CHANNEL_ID:
+            !FindInMap [EnvironmentMap, !Ref Environment, LIFFChannelId]
+          LINE_PAY_CHANNEL_ID:
+            !FindInMap [EnvironmentMap, !Ref Environment, LinePayChannelId]
+          LINE_PAY_CHANNEL_SECRET:
+            !FindInMap [EnvironmentMap, !Ref Environment, LinePayChannelSecret]
+          LINE_PAY_IS_SANDBOX:
+            !FindInMap [EnvironmentMap, !Ref Environment, LinePayIsSandbox]
+          LINE_PAY_ORDER_INFO_DB: !Ref RegisterOrderInfoDB
+          CONFIRM_URL_PASS:
+            !FindInMap [EnvironmentMap, !Ref Environment, ConfirmUrlPass]
+          CANCEL_URL: !Sub https://${CloudFrontDistribution.DomainName}/
+          PAYMENT_IMG_URL:
+            !FindInMap [EnvironmentMap, !Ref Environment, PaymentImageUrl]
+          TTL_DAY: !FindInMap [EnvironmentMap, !Ref Environment, TTLDay]
+          LOGGER_LEVEL:
+            !FindInMap [EnvironmentMap, !Ref Environment, LoggerLevel]
+      Events:
+        PutCartData:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /put_linepay_request
+            Method: post
+            RestApiId:
+              Ref: SmaRegisterApiGateway
+
+  LinepayConfirm:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      CodeUri: put_linepay_confirm/
+      FunctionName: !Sub SmartRegister-LinepayConfirm-${Environment}
+      Description: ""
+      Layers:
+        - !Join
+          - ":"
+          - - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer"
+            - !ImportValue SmartRegisterLayer
+            - !FindInMap [EnvironmentMap, !Ref Environment, LayerVersion]
+      Role: !GetAtt LambdaRole.Arn
+      Environment:
+        Variables:
+          OA_CHANNEL_ID:
+            !FindInMap [EnvironmentMap, !Ref Environment, LineOAChannelId]
+          LIFF_CHANNEL_ID:
+            !FindInMap [EnvironmentMap, !Ref Environment, LIFFChannelId]
+          LIFF_URL: !FindInMap [EnvironmentMap, !Ref Environment, LIFFUrl]
+          LINE_PAY_CHANNEL_ID:
+            !FindInMap [EnvironmentMap, !Ref Environment, LinePayChannelId]
+          LINE_PAY_CHANNEL_SECRET:
+            !FindInMap [EnvironmentMap, !Ref Environment, LinePayChannelSecret]
+          LINE_PAY_IS_SANDBOX:
+            !FindInMap [EnvironmentMap, !Ref Environment, LinePayIsSandbox]
+          LINE_PAY_ORDER_INFO_DB: !Ref RegisterOrderInfoDB
+          CHANNEL_ACCESS_TOKEN_DB:
+            !FindInMap [
+              EnvironmentMap,
+              !Ref Environment,
+              LINEChannelAccessTokenDBName,
+            ]
+          DETAILS_PASS:
+            !FindInMap [EnvironmentMap, !Ref Environment, DetailsPass]
+          TTL_DAY: !FindInMap [EnvironmentMap, !Ref Environment, TTLDay]
+          LOGGER_LEVEL:
+            !FindInMap [EnvironmentMap, !Ref Environment, LoggerLevel]
+      Events:
+        PutCartData:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /put_linepay_confirm
+            Method: post
+            RestApiId:
+              Ref: SmaRegisterApiGateway
+
+  GetCouponsInfo:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      CodeUri: get_coupons_info/
+      FunctionName: !Sub SmartRegister-GetCouponsInfo-${Environment}
+      Description: ""
+      Layers:
+        - !Join
+          - ":"
+          - - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer"
+            - !ImportValue SmartRegisterLayer
+            - !FindInMap [EnvironmentMap, !Ref Environment, LayerVersion]
+      Role: !GetAtt LambdaRole.Arn
+      Environment:
+        Variables:
+          LINE_PAY_COUPON_INFO_DB: !Ref RegisterCouponInfoDB
+          LOGGER_LEVEL:
+            !FindInMap [EnvironmentMap, !Ref Environment, LoggerLevel]
+      Events:
+        GetCouponInfo:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /get_coupons_info
+            Method: get
+            RestApiId:
+              Ref: SmaRegisterApiGateway
+
+  RegisterItemInfoDB:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "barcode"
+          AttributeType: S
+      TableName:
+        !FindInMap [EnvironmentMap, !Ref Environment, RegisterItemInfoDBName]
+      KeySchema:
+        - AttributeName: "barcode"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  RegisterOrderInfoDB:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "orderId"
+          AttributeType: S
+        - AttributeName: "userId"
+          AttributeType: S
+      TableName:
+        !FindInMap [EnvironmentMap, !Ref Environment, RegisterOrderInfoDBName]
+      KeySchema:
+        - AttributeName: "orderId"
+          KeyType: "HASH"
+      GlobalSecondaryIndexes:
+        - IndexName: userId-orderId-index
+          KeySchema:
+            - AttributeName: "userId"
+              KeyType: "HASH"
+            - AttributeName: "orderId"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
+              - "paidDateTime"
+              - "amount"
+              - "item"
+              - "discountWay"
+              - "discountRate"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 1
+            WriteCapacityUnits: 1
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      TimeToLiveSpecification:
+        AttributeName: "expirationDate"
+        Enabled: !FindInMap [EnvironmentMap, !Ref Environment, TTL]
+
+  RegisterCouponInfoDB:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "couponId"
+          AttributeType: S
+      TableName:
+        !FindInMap [EnvironmentMap, !Ref Environment, RegisterCouponInfoDBName]
+      KeySchema:
+        - AttributeName: "couponId"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  SmaRegisterApiGateway:
+    Properties:
+      StageName: !Ref Environment
+      OpenApiVersion: 3.0.2
+      Cors:
+        AllowOrigin: "'*'"
+        AllowHeaders: "'Origin, Authorization, Accept, X-Requested-With, Content-Type, x-amz-date, X-Amz-Security-Token'"
+        AllowMethods: "'GET, POST, OPTIONS'"
+    Type: AWS::Serverless::Api
+    Tags:
+      - Key: "Name"
+        Value: "LINE"
+      - Key: "App"
+        Value: "SmaRegister"
+
+  FrontBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        !FindInMap [EnvironmentMap, !Ref Environment, FrontS3BucketName]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: "AES256"
+      # LoggingConfiguration:
+      #   DestinationBucketName:
+      #     !FindInMap [EnvironmentMap, !Ref Environment, LogS3Bucket]
+      #   LogFilePrefix:
+      #     !FindInMap [EnvironmentMap, !Ref Environment, LogFilePrefix]
+  AssetsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontBucket
+      PolicyDocument:
+        Version: "2008-10-17"
+        Id: PolicyForCloudFrontPrivateContent
+        Statement:
+          - Action: s3:GetObject
+            Sid: 1
+            Effect: Allow
+            Resource: !Sub arn:aws:s3:::${FrontBucket}/*
+            Principal:
+              AWS: !Sub arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}
+            Condition:
+              Bool:
+                "aws:SecureTransport": "true"
+          - Action: s3:*
+            Sid: 2
+            Effect: Deny
+            Principal: "*"
+            Resource: !Sub arn:aws:s3:::${FrontBucket}
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+
+  CloudFrontDistribution:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        Origins:
+          - ConnectionAttempts: 3
+            ConnectionTimeout: 10
+            DomainName: !GetAtt FrontBucket.DomainName
+            Id: !Sub "S3-${FrontBucket}"
+            OriginPath: ""
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}
+        OriginGroups:
+          Quantity: 0
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - "HEAD"
+            - "DELETE"
+            - "POST"
+            - "GET"
+            - "OPTIONS"
+            - "PUT"
+            - "PATCH"
+          CachedMethods:
+            - "HEAD"
+            - "GET"
+          Compress: false
+          DefaultTTL: 0
+          ForwardedValues:
+            Cookies:
+              Forward: "none"
+            QueryString: false
+          MaxTTL: 0
+          MinTTL: 0
+          SmoothStreaming: false
+          TargetOriginId: !Sub "S3-${FrontBucket}"
+          ViewerProtocolPolicy: "redirect-to-https"
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponsePagePath: "/index.html"
+            ResponseCode: "200"
+            ErrorCachingMinTTL: 0
+        Comment: ""
+        PriceClass: "PriceClass_All"
+        Enabled: true
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+          MinimumProtocolVersion: "TLSv1"
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: "none"
+        HttpVersion: "http2"
+        DefaultRootObject: "index.html"
+        IPV6Enabled: true
+        Logging:
+          Bucket: !GetAtt FrontBucket.DomainName
+          Prefix: log
+  CloudFrontOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Ref AWS::StackName
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/
+  GetItemInfoApi:
+    Description: "API Gateway endpoint URL for GetItemInfo function"
+    Value: !Sub "https://${SmaRegisterApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/get_item_info/"
+  GetItemInfoFunction:
+    Description: "GetItemInfo Lambda Function ARN"
+    Value: !GetAtt GetItemInfo.Arn
+  GetOrderInfoApi:
+    Description: "API Gateway endpoint URL for GetOrderInfo function"
+    Value: !Sub "https://${SmaRegisterApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/get_order_info/"
+  GetOrderInfoFunction:
+    Description: "GetOrderInfo Lambda Function ARN"
+    Value: !GetAtt GetOrderInfo.Arn
+  PutCartDataApi:
+    Description: "API Gateway endpoint URL for PutCartData function"
+    Value: !Sub "https://${SmaRegisterApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/put_cart_data/"
+  PutCartDataFunction:
+    Description: "PutCartData Lambda Function ARN"
+    Value: !GetAtt PutCartData.Arn
+  LinepayReserveApi:
+    Description: "API Gateway endpoint URL for LinepayReserve function"
+    Value: !Sub "https://${SmaRegisterApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/put_linepay_request/"
+  LinepayReserveFunction:
+    Description: "LinepayReserve Lambda Function ARN"
+    Value: !GetAtt LinepayReserve.Arn
+  LinepayConfirmApi:
+    Description: "API Gateway endpoint URL for LinepayConfirm function"
+    Value: !Sub "https://${SmaRegisterApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/put_linepay_confirm/"
+  LinepayConfirmFunction:
+    Description: "LinepayConfirm Lambda Function ARN"
+    Value: !GetAtt LinepayConfirm.Arn
+  LineOAChannelId:
+    Description: "MessagingAPI LineChannelId"
+    Value: !FindInMap [EnvironmentMap, !Ref Environment, LineOAChannelId]
+  LIFFChannelId:
+    Description: "LIFF ChannelId"
+    Value: !FindInMap [EnvironmentMap, !Ref Environment, LIFFChannelId]
+  LinePayChannelId:
+    Description: "ChannelId for LinePay"
+    Value: !FindInMap [EnvironmentMap, !Ref Environment, LinePayChannelId]
+  LinePayChannelSecret:
+    Description: "ChannelSecret for LinePayChannel"
+    Value: !FindInMap [EnvironmentMap, !Ref Environment, LinePayChannelSecret]
+  CloudFrontDomainName:
+    Description: "CloudFront for SmartRegister Demo"
+    Value: !GetAtt CloudFrontDistribution.DomainName
+  S3:
+    Description: "S3 Bucket for Frontend"
+    Value: !Ref FrontBucket
