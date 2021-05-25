@@ -64,7 +64,7 @@ Scandit をご利用になる場合は [SCANDIT サイト](https://www.scandit.c
 ### [動作確認](./docs/validation.md)
 ***
 # License
-SmartRegisterの全てのファイルは、条件なしで自由にご利用いただけます。
+SmartRetailの全てのファイルは、条件なしで自由にご利用いただけます。
 自由にdownload&cloneをして、LINE APIを活用した素敵なアプリケーションの開発を始めてください！
 
 See [LICENSE](LICENSE) for more detail.(English)

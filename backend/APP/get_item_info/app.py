@@ -1,8 +1,6 @@
 import json
 import os
 import logging
-import math
-import requests
 
 from common import (common_const, utils)
 from validation.smart_register_param_check import SmartRegisterParamCheck
@@ -56,18 +54,25 @@ def lambda_handler(event, context):
     logger.debug(barcode)
     try:
         item_info = item_info_table.get_item(barcode)
-        target_product = {
-            'Name': item_info['itemName'],
-            'Price': item_info['itemPrice'],
-            'ImageUrl': item_info['imageUrl']
-        }
-        # クーポン保持している商品はクーポン情報を返却
-        if ('couponId' in params) and params['couponId']:
-            coupon_info = coupon_info_table.get_item(item_info['couponId'])
-            if coupon_info:
-                target_product['discountRate'] = item_info['discountRate'] if 'discountRate' in item_info.keys() else None  # noqa: E501
-                target_product['discountWay'] = item_info['discountWay'] if 'discountWay' in item_info.keys() else None  # noqa: E501
-
+        if item_info:
+            target_product = {
+                'Name': item_info['itemName'],
+                'Price': item_info['itemPrice'],
+                'ImageUrl': item_info['imageUrl']
+            }
+            # クーポン保持している商品はクーポン情報を返却
+            if ('couponId' in params) and params['couponId']:
+                coupon_info = coupon_info_table.get_item(item_info['couponId'])
+                if coupon_info:
+                    target_product['discountRate'] = item_info['discountRate'] if 'discountRate' in item_info.keys() else None  # noqa: E501
+                    target_product['discountWay'] = item_info['discountWay'] if 'discountWay' in item_info.keys() else None  # noqa: E501
+        else:
+            # 未登録データの場合はERRORを返す
+            target_product = {
+                'Name': 'ERROR',
+                'Price': 'ERROR',
+                'ImageUrl': 'ERROR'
+            }
     except Exception as e:
         logger.exception('Occur Exception: %s', e)
         return utils.create_error_response('Error')
