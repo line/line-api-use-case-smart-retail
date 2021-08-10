@@ -4,13 +4,13 @@
 ※ローカル環境構築の場合は、[フロントエンドの開発環境](front-end-development-environment.md)の手順に従い、ローカルのURLを入れてください。
 
 1. [LINE Developersコンソール](https://developers.line.biz/console/)にて、【LINEチャネルの作成 -> LIFFアプリの追加】にて作成したLIFFアプリのページに遷移する。
-![LIFFのコンソール](images/liff-console.png)
+![LIFFのコンソール](../images/jp/liff-console.png)
 
 1. エンドポイントURL項目の編集ボタンを押下する。
-![エンドポイントURLの編集](images/end-point-url-description.png)
+![エンドポイントURLの編集](../images/jp/end-point-url-description.png)
 
 1. 【バックエンドの構築 -> アプリのデプロイ(APP)】の手順にてメモを取ったCloudFrontDomainNameを 先頭にhttps:// を付けて以下のように記載し、更新を押下する。
-![エンドポイントURLの記載](images/end-point-url-editing.png)
+![エンドポイントURLの記載](../images/jp/end-point-url-editing.png)
 
 ## リッチメニューの設定
 リッチメニューを設定してアプリを起動する場合、以下リンクを参照し設定してください。  
@@ -23,17 +23,17 @@ https://developers.line.biz/ja/docs/messaging-api/using-rich-menus/#creating-a-r
 1. テスト用商品データとして、以下のバーコードを読み取ることができます。
 - 書籍
 
-![barcode_book](images/barcode_isbn_book.png)
+![barcode_book](../images/jp/barcode_isbn_book.png)
 - りんご
 
-![barcode_apple](images/barcode_jan_apple.png)
+![barcode_apple](../images/jp/barcode_jan_apple.png)
 - とまと
 
-![barcode_tomato](images/barcode_jan_tomato.png)
+![barcode_tomato](../images/jp/barcode_jan_tomato.png)
 - すいか
 
-![barcode_watermelon](images/barcode_jan_watermelon.png)
+![barcode_watermelon](../images/jp/barcode_jan_watermelon.png)
 
 ※Cloudfront作成に2時間ほどかかる可能性があります。Access Deniedの画面が表示される場合、一度時間を置いてから確認して下さい。
 
-[目次へ戻る](../README.md)
+[目次へ戻る](../../README.md)

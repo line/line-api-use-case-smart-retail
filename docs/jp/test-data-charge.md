@@ -10,10 +10,10 @@
 
 
   データはAWSマネジメントコンソールの DynamoDB コンソールにて、ペーストして投入します。(※以下画像参照)  
-  
+
   【テストデータの投入】
-  ![データの投入画像](images/test-data-charge.png)
+  ![データの投入画像](../images/jp/test-data-charge.png)
 
 [次の頁へ](validation.md)
 
-[目次へ戻る](../README.md)
+[目次へ戻る](../../README.md)
