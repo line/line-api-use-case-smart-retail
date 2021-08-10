@@ -64,7 +64,7 @@ A provider is a team, company, or individual that manages multiple channels. Pro
       1. Terms of Service URL: Optional
    1. Read the LINE Official Account Terms of Service and LINE Official Account API Terms of Service, and select "I agree."
    1. Click Create to create a channel.
-   1. The screen of the created channel will appear as shown in the image below, confirming that the channel creation is complete.。
+   1. The screen of the created channel will appear as shown in the image below, confirming that the channel creation is complete..  
       ![Creating a channel_2](../images/en/line-channel-create-2-en.png)
       The channel ID and channel secret shown in the Channel Basic Settings tab will be used in the following steps, so please make a note of them.
 1. Create a channel for LIFF
@@ -84,7 +84,7 @@ A provider is a team, company, or individual that manages multiple channels. Pro
       1. Terms of Service URL: Optional
    1. Read the contents of the LINE Developer Agreement and check the box to agree
    1. Click Create to create a channel.
-   1. The screen of the created channel will appear as shown in the image below, confirming that the channel creation is complete.。
+   1. The screen of the created channel will appear as shown in the image below, confirming that the channel creation is complete..  
       ![Create a channel_4](../images/en/line-channel-create-4-en.png)
       *Make a note of the channel ID displayed on the basic channel settings tab, as it will be used in the following steps.
 1. "Linked bot" settings
